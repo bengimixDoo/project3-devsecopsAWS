@@ -4,8 +4,9 @@
 
 locals {
   oidc_enabled = var.create_github_oidc && var.github_owner != "" && var.github_repo != ""
-  # Điều kiện sub: giới hạn theo repo + các ref cho phép (vd nhánh main).
-  oidc_subs = [for r in var.github_allowed_refs : "repo:${var.github_owner}/${var.github_repo}:${r}"]
+  # Điều kiện sub: nếu truyền github_sub_claims thì dùng trực tiếp (pattern StringLike,
+  # cho phép wildcard); nếu không thì sinh từ owner/repo + allowed_refs.
+  oidc_subs = length(var.github_sub_claims) > 0 ? var.github_sub_claims : [for r in var.github_allowed_refs : "repo:${var.github_owner}/${var.github_repo}:${r}"]
 }
 
 resource "aws_iam_openid_connect_provider" "github" {

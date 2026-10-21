@@ -40,6 +40,12 @@ variable "github_allowed_refs" {
   default     = ["ref:refs/heads/main", "pull_request"]
 }
 
+variable "github_sub_claims" {
+  description = "Ghi đè trực tiếp danh sách pattern sub (StringLike, cho phép '*'). Để trống thì sinh tự động từ owner/repo + allowed_refs."
+  type        = list(string)
+  default     = []
+}
+
 variable "deploy_role_managed_policy_arns" {
   description = "Managed policy gắn cho role Deploy. Mặc định PowerUserAccess + IAMFullAccess cho demo; siết lại ở W13."
   type        = list(string)

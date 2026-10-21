@@ -24,6 +24,7 @@ module "iam" {
   create_github_oidc = var.create_github_oidc
   github_owner       = var.github_owner
   github_repo        = var.github_repo
+  github_sub_claims  = var.github_sub_claims
 }
 
 module "ecr" {

@@ -51,3 +51,9 @@ variable "github_repo" {
   type        = string
   default     = "project3-devsecopsAWS"
 }
+
+variable "github_sub_claims" {
+  description = "Ghi đè pattern sub OIDC (StringLike, cho phép '*'). Để trống thì sinh tự động từ owner/repo."
+  type        = list(string)
+  default     = []
+}
