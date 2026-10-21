@@ -1,6 +1,6 @@
-# CI Terraform — W7.
-# - PR: fmt + validate + plan (không apply).
-# - Push vào main (sau khi merge): apply.
+# CI Terraform — W7 (apply thủ công).
+# - PR hoặc push vào main: fmt + validate + plan (KHÔNG apply, không tạo tài nguyên).
+# - apply: CHỈ chạy khi bấm thủ công (Actions -> Run workflow), phải gõ "apply" xác nhận.
 # Xác thực AWS qua GitHub OIDC (KHÔNG dùng access key tĩnh).
 # Checkov sẽ thêm ở W8.
 
@@ -18,6 +18,12 @@ on:
       - "modules/**"
       - "envs/**"
       - ".github/workflows/ci-terraform.yml"
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Gõ "apply" để xác nhận TẠO/ĐỔI hạ tầng thật trên AWS'
+        required: true
+        default: "no"
 
 # Cần cho OIDC assume role.
 permissions:
@@ -28,14 +34,14 @@ env:
   AWS_REGION: ap-southeast-1
   TF_VERSION: "1.10.5"
   WORKDIR: envs/dev
-  # Thay bằng ARN role Deploy sau khi apply OIDC (output deploy_role_arn),
-  # hoặc đặt trong repo Variables: vars.AWS_DEPLOY_ROLE_ARN.
+  # Đặt trong repo Variables: Settings -> Secrets and variables -> Actions -> Variables.
   DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
 
 jobs:
+  # Chạy trên PR và push main — chỉ xem trước, an toàn.
   plan:
     name: validate + plan
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -65,9 +71,10 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
         run: terraform plan -input=false -no-color
 
+  # Chỉ chạy khi bấm "Run workflow" thủ công VÀ gõ đúng "apply".
   apply:
-    name: apply (main)
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    name: apply (manual)
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'apply'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
