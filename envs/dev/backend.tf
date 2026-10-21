@@ -1,16 +1,16 @@
 # Backend S3 cho Terraform state.
 #
-# CHƯA bật ở W5: bucket state phải được tạo TRƯỚC (xem docs/backend-bootstrap.md).
-# Sau khi bucket tồn tại, bỏ comment khối dưới và chạy: terraform init -migrate-state
+# Bucket state: project3-tfstate-434481793703 (đã bootstrap: versioning + SSE + block public).
+# S3 native locking (use_lockfile) của Terraform >= 1.10 -> không cần DynamoDB.
 #
-# Dùng S3 native locking (use_lockfile) của Terraform >= 1.10 -> không cần DynamoDB.
-#
-# terraform {
-#   backend "s3" {
-#     bucket       = "project3-tfstate-<ACCOUNT_ID>"   # tên bucket toàn cục, thay <ACCOUNT_ID>
-#     key          = "envs/dev/terraform.tfstate"
-#     region       = "ap-southeast-1"
-#     encrypt      = true
-#     use_lockfile = true
-#   }
-# }
+# Migrate state: terraform init -migrate-state
+
+terraform {
+  backend "s3" {
+    bucket       = "project3-tfstate-434481793703"
+    key          = "envs/dev/terraform.tfstate"
+    region       = "ap-southeast-1"
+    encrypt      = true
+    use_lockfile = true
+  }
+}
