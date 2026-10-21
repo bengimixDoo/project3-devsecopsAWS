@@ -23,3 +23,8 @@ reports/
 Thumbs.db
 .vscode/
 .idea/
+
+# Tài liệu riêng (không đưa lên GitHub)
+*.docx
+*.doc
+gen_plan_docx.py
