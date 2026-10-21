@@ -1,0 +1,41 @@
+# CI Terraform — khung W5. Các bước quét (Checkov) và apply sẽ thêm ở W7–W8.
+# LƯU Ý: job plan cần xác thực AWS. Sẽ bật OIDC ở W7; hiện để chạy fmt/validate
+# (không cần credentials) và plan chạy ở chế độ không gọi AWS khi chưa có backend.
+
+name: ci-terraform
+
+on:
+  pull_request:
+    paths:
+      - "modules/**"
+      - "envs/**"
+      - ".github/workflows/ci-terraform.yml"
+
+permissions:
+  contents: read
+  # id-token: write   # BẬT ở W7 cho OIDC assume role
+
+jobs:
+  validate:
+    name: fmt + validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+
+      - name: terraform fmt (check)
+        run: terraform fmt -check -recursive
+
+      - name: terraform init (no backend)
+        working-directory: envs/dev
+        run: terraform init -backend=false
+
+      - name: terraform validate
+        working-directory: envs/dev
+        run: terraform validate
+
+  # checkov:   # THÊM Ở W8 — quét IaC, xuất SARIF, upload lên tab Security, gate HIGH/CRITICAL
+  # apply:     # THÊM Ở W7 — chỉ chạy khi merge vào main, assume role qua OIDC

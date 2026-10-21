@@ -1,0 +1,12 @@
+# Cấu hình Checkov — dùng từ W8.
+# Gate: chặn build khi có finding HIGH/CRITICAL (cấu hình trong workflow).
+# Mỗi skip-check PHẢI có lý do ghi rõ (waiver có kiểm soát).
+
+# Ví dụ waiver (bỏ comment khi cần, LUÔN kèm lý do):
+# skip-check:
+#   - CKV_AWS_18   # lý do: bucket log truy cập chính nó, chấp nhận rủi ro cho demo
+
+framework:
+  - terraform
+
+compact: true
