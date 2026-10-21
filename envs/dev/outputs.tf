@@ -22,3 +22,8 @@ output "cspm_readonly_role_arn" {
   description = "ARN role read-only cho Prowler"
   value       = module.iam.cspm_readonly_role_arn
 }
+
+output "deploy_role_arn" {
+  description = "ARN role Deploy cho GitHub Actions (điền vào workflow khi dùng OIDC)"
+  value       = module.iam.deploy_role_arn
+}

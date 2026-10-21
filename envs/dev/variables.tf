@@ -33,3 +33,21 @@ variable "create_cspm_readonly_role" {
   type        = bool
   default     = true
 }
+
+variable "create_github_oidc" {
+  description = "Tạo GitHub OIDC provider + role Deploy (W7)."
+  type        = bool
+  default     = false
+}
+
+variable "github_owner" {
+  description = "Chủ sở hữu repo GitHub."
+  type        = string
+  default     = "bengimixDoo"
+}
+
+variable "github_repo" {
+  description = "Tên repo GitHub."
+  type        = string
+  default     = "project3-devsecopsAWS"
+}

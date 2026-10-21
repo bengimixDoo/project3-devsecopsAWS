@@ -14,3 +14,37 @@ variable "cspm_trusted_principal_arns" {
   type        = list(string)
   default     = []
 }
+
+# ---------- OIDC + role Deploy cho GitHub Actions (W7) ----------
+variable "create_github_oidc" {
+  description = "Tạo GitHub OIDC provider + IAM Role Deploy để GitHub Actions assume (không dùng access key tĩnh)."
+  type        = bool
+  default     = false
+}
+
+variable "github_owner" {
+  description = "Chủ sở hữu repo GitHub (user/org), vd 'bengimixDoo'."
+  type        = string
+  default     = ""
+}
+
+variable "github_repo" {
+  description = "Tên repo GitHub, vd 'project3-devsecopsAWS'."
+  type        = string
+  default     = ""
+}
+
+variable "github_allowed_refs" {
+  description = "Danh sách điều kiện sub được phép assume role Deploy. Mặc định: nhánh main (apply) + mọi PR của repo (plan)."
+  type        = list(string)
+  default     = ["ref:refs/heads/main", "pull_request"]
+}
+
+variable "deploy_role_managed_policy_arns" {
+  description = "Managed policy gắn cho role Deploy. Mặc định PowerUserAccess + IAMFullAccess cho demo; siết lại ở W13."
+  type        = list(string)
+  default = [
+    "arn:aws:iam::aws:policy/PowerUserAccess",
+    "arn:aws:iam::aws:policy/IAMFullAccess",
+  ]
+}

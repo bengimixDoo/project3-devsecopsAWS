@@ -20,6 +20,10 @@ module "iam" {
 
   project_name              = var.project_name
   create_cspm_readonly_role = var.create_cspm_readonly_role
+
+  create_github_oidc = var.create_github_oidc
+  github_owner       = var.github_owner
+  github_repo        = var.github_repo
 }
 
 module "ecr" {

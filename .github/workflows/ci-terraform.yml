@@ -1,6 +1,8 @@
-# CI Terraform — khung W5. Các bước quét (Checkov) và apply sẽ thêm ở W7–W8.
-# LƯU Ý: job plan cần xác thực AWS. Sẽ bật OIDC ở W7; hiện để chạy fmt/validate
-# (không cần credentials) và plan chạy ở chế độ không gọi AWS khi chưa có backend.
+# CI Terraform — W7.
+# - PR: fmt + validate + plan (không apply).
+# - Push vào main (sau khi merge): apply.
+# Xác thực AWS qua GitHub OIDC (KHÔNG dùng access key tĩnh).
+# Checkov sẽ thêm ở W8.
 
 name: ci-terraform
 
@@ -10,32 +12,82 @@ on:
       - "modules/**"
       - "envs/**"
       - ".github/workflows/ci-terraform.yml"
+  push:
+    branches: [main]
+    paths:
+      - "modules/**"
+      - "envs/**"
+      - ".github/workflows/ci-terraform.yml"
 
+# Cần cho OIDC assume role.
 permissions:
   contents: read
-  # id-token: write   # BẬT ở W7 cho OIDC assume role
+  id-token: write
+
+env:
+  AWS_REGION: ap-southeast-1
+  TF_VERSION: "1.10.5"
+  WORKDIR: envs/dev
+  # Thay bằng ARN role Deploy sau khi apply OIDC (output deploy_role_arn),
+  # hoặc đặt trong repo Variables: vars.AWS_DEPLOY_ROLE_ARN.
+  DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
 
 jobs:
-  validate:
-    name: fmt + validate
+  plan:
+    name: validate + plan
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.10.5"
+          terraform_version: ${{ env.TF_VERSION }}
 
       - name: terraform fmt (check)
         run: terraform fmt -check -recursive
 
-      - name: terraform init (no backend)
-        working-directory: envs/dev
-        run: terraform init -backend=false
+      - name: terraform init
+        working-directory: ${{ env.WORKDIR }}
+        run: terraform init -input=false
 
       - name: terraform validate
-        working-directory: envs/dev
+        working-directory: ${{ env.WORKDIR }}
         run: terraform validate
 
-  # checkov:   # THÊM Ở W8 — quét IaC, xuất SARIF, upload lên tab Security, gate HIGH/CRITICAL
-  # apply:     # THÊM Ở W7 — chỉ chạy khi merge vào main, assume role qua OIDC
+      - name: terraform plan
+        working-directory: ${{ env.WORKDIR }}
+        run: terraform plan -input=false -no-color
+
+  apply:
+    name: apply (main)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: terraform init
+        working-directory: ${{ env.WORKDIR }}
+        run: terraform init -input=false
+
+      - name: terraform apply
+        working-directory: ${{ env.WORKDIR }}
+        run: terraform apply -input=false -auto-approve
+
+  # checkov:  # THÊM Ở W8 — quét IaC, xuất SARIF, gate HIGH/CRITICAL
