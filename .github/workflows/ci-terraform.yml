@@ -1,8 +1,8 @@
-# CI Terraform — W7 (apply thủ công).
-# - PR hoặc push vào main: fmt + validate + plan (KHÔNG apply, không tạo tài nguyên).
-# - apply: CHỈ chạy khi bấm thủ công (Actions -> Run workflow), phải gõ "apply" xác nhận.
+# CI Terraform — W8 (Checkov gate + apply thủ công).
+# - checkov: quét IaC trên MỌI push/PR, vi phạm -> job đỏ (shift-left gate).
+# - plan: chỉ chạy trên PR / push main, và CHỈ khi checkov xanh.
+# - apply: CHỈ chạy khi bấm thủ công (Actions -> Run workflow), gõ "apply", và checkov xanh.
 # Xác thực AWS qua GitHub OIDC (KHÔNG dùng access key tĩnh).
-# Checkov sẽ thêm ở W8.
 
 name: ci-terraform
 
@@ -11,13 +11,15 @@ on:
     paths:
       - "modules/**"
       - "envs/**"
-      - ".github/workflows/ci-terraform.yml"
+      - ".checkov.yaml"
+      - ".github/**"
   push:
-    branches: [main]
+    branches: ["**"]
     paths:
       - "modules/**"
       - "envs/**"
-      - ".github/workflows/ci-terraform.yml"
+      - ".checkov.yaml"
+      - ".github/**"
   workflow_dispatch:
     inputs:
       confirm:
@@ -38,10 +40,35 @@ env:
   DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
 
 jobs:
-  # Chạy trên PR và push main — chỉ xem trước, an toàn.
+  # W8: gate bảo mật shift-left. Không cần AWS credentials -- chỉ quét code.
+  checkov:
+    name: checkov (security gate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkov scan
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          config_file: .checkov.yaml
+          output_format: cli,json
+          output_file_path: console,results_json.json
+          # Không fail ở đây; bước gate bên dưới quyết định + tạo annotation.
+          soft_fail: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Checkov gate
+        run: python .github/scripts/checkov_gate.py results_json.json
+
+  # Chạy trên PR và push main — chỉ xem trước, an toàn. Chờ checkov xanh.
   plan:
     name: validate + plan
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    needs: checkov
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -75,6 +102,7 @@ jobs:
   # Chỉ chạy khi bấm "Run workflow" thủ công VÀ gõ đúng "apply".
   apply:
     name: apply (manual)
+    needs: checkov
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'apply'
     runs-on: ubuntu-latest
     steps:
@@ -98,5 +126,3 @@ jobs:
       - name: terraform apply
         working-directory: ${{ env.WORKDIR }}
         run: terraform apply -input=false -auto-approve
-
-  # checkov:  # THÊM Ở W8 — quét IaC, xuất SARIF, gate HIGH/CRITICAL
