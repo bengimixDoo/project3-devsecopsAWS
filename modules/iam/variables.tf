@@ -15,6 +15,12 @@ variable "cspm_trusted_principal_arns" {
   default     = []
 }
 
+variable "cspm_sub_claims" {
+  description = "Danh sách sub OIDC được assume role CSPM read-only (so khớp chính xác). Để trống thì không cho GitHub Actions assume."
+  type        = list(string)
+  default     = []
+}
+
 # ---------- OIDC + role Deploy cho GitHub Actions (W7) ----------
 variable "create_github_oidc" {
   description = "Tạo GitHub OIDC provider + IAM Role Deploy để GitHub Actions assume (không dùng access key tĩnh)."
