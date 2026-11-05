@@ -1,0 +1,45 @@
+{
+  "default": "MEDIUM",
+  "blocking": ["CRITICAL", "HIGH"],
+  "checks": {
+    "CRITICAL": [
+      "CKV_AWS_24",
+      "CKV_AWS_25",
+      "CKV_AWS_277",
+      "CKV_AWS_20",
+      "CKV_AWS_57",
+      "CKV_AWS_41",
+      "CKV_AWS_46",
+      "CKV_AWS_1",
+      "CKV_AWS_62",
+      "CKV2_AWS_40"
+    ],
+    "HIGH": [
+      "CKV_AWS_260",
+      "CKV_AWS_19",
+      "CKV2_P3_1",
+      "CKV2_AWS_6",
+      "CKV_AWS_53",
+      "CKV_AWS_54",
+      "CKV_AWS_55",
+      "CKV_AWS_56",
+      "CKV_AWS_70",
+      "CKV_AWS_93",
+      "CKV_AWS_60",
+      "CKV_AWS_61",
+      "CKV_AWS_63",
+      "CKV_AWS_49",
+      "CKV_AWS_107",
+      "CKV_AWS_109",
+      "CKV_AWS_110",
+      "CKV_AWS_286",
+      "CKV_AWS_287",
+      "CKV_AWS_289"
+    ],
+    "LOW": [
+      "CKV_AWS_18",
+      "CKV2_AWS_61",
+      "CKV_AWS_394"
+    ]
+  }
+}

@@ -1,5 +1,5 @@
 # CI Terraform — W8 (Checkov gate + apply thủ công).
-# - checkov: quét IaC trên MỌI push/PR, vi phạm -> job đỏ (shift-left gate).
+# - checkov: quét IaC trên MỌI push/PR, HIGH/CRITICAL -> job đỏ (shift-left gate), SARIF lên tab Security.
 # - plan: chỉ chạy trên PR / push main, và CHỈ khi checkov xanh.
 # - apply: CHỈ chạy khi bấm thủ công (Actions -> Run workflow), gõ "apply", và checkov xanh.
 # Xác thực AWS qua GitHub OIDC (KHÔNG dùng access key tĩnh).
@@ -7,12 +7,9 @@
 name: ci-terraform
 
 on:
+  # Không lọc paths: checkov là status check bắt buộc của main, nếu PR chỉ sửa docs mà
+  # workflow không chạy thì PR kẹt ở "Expected — Waiting for status".
   pull_request:
-    paths:
-      - "modules/**"
-      - "envs/**"
-      - ".checkov.yaml"
-      - ".github/**"
   push:
     branches: ["**"]
     paths:
@@ -44,6 +41,9 @@ jobs:
   checkov:
     name: checkov (security gate)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@v4
 
@@ -52,10 +52,17 @@ jobs:
         with:
           directory: .
           config_file: .checkov.yaml
-          output_format: cli,json
-          output_file_path: console,results_json.json
+          output_format: cli,json,sarif
+          output_file_path: console,results_json.json,results.sarif
           # Không fail ở đây; bước gate bên dưới quyết định + tạo annotation.
           soft_fail: true
+
+      # Upload trước gate để finding vẫn lên tab Security khi build bị chặn.
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+          category: checkov
 
       - uses: actions/setup-python@v5
         with:
