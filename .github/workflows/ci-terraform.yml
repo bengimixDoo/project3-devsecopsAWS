@@ -2,6 +2,7 @@
 # - checkov: quét IaC trên MỌI push/PR, HIGH/CRITICAL -> job đỏ (shift-left gate), SARIF lên tab Security.
 # - plan: chỉ chạy trên PR / push main, và CHỈ khi checkov xanh.
 # - apply: CHỈ chạy khi bấm thủ công (Actions -> Run workflow), gõ "apply", và checkov xanh.
+# - prowler: quét CSPM sau khi apply xong (W9, xem cspm-prowler.yml).
 # Xác thực AWS qua GitHub OIDC (KHÔNG dùng access key tĩnh).
 
 name: ci-terraform
@@ -59,7 +60,7 @@ jobs:
 
       # Upload trước gate để finding vẫn lên tab Security khi build bị chặn.
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: results.sarif
           category: checkov
@@ -133,3 +134,12 @@ jobs:
       - name: terraform apply
         working-directory: ${{ env.WORKDIR }}
         run: terraform apply -input=false -auto-approve
+
+  # W9: quét CSPM ngay sau mỗi lần apply thành công.
+  prowler:
+    name: prowler sau apply
+    needs: apply
+    uses: ./.github/workflows/cspm-prowler.yml
+    permissions:
+      contents: read
+      id-token: write

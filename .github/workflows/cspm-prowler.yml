@@ -1,0 +1,65 @@
+# CSPM runtime — W9: Prowler đối chiếu cấu hình AWS thật với CIS AWS Foundations Benchmark.
+# - Chạy theo lịch, bấm thủ công, hoặc được ci-terraform.yml gọi sau mỗi lần apply.
+# - Chỉ đọc: dùng role cspm-readonly qua OIDC, tách khỏi role Deploy. Trust chỉ cho nhánh main.
+# - Finding KHÔNG làm job đỏ: lỗi cấu hình là kết quả để báo cáo, không phải lỗi pipeline.
+#   Job chỉ đỏ khi quét hỏng hoặc không ra kết quả. Cảnh báo là việc của W11.
+
+name: cspm-prowler
+
+on:
+  schedule:
+    - cron: "0 20 * * 0" # 03:00 thứ Hai, giờ Việt Nam
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  prowler:
+    name: prowler (CIS)
+    runs-on: ubuntu-latest
+    env:
+      PROWLER_VERSION: "5.47.0"
+      COMPLIANCE: cis_7.0_aws
+      AWS_REGION: ap-southeast-1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_CSPM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cài Prowler
+        run: pip install "prowler==${PROWLER_VERSION}"
+
+      - name: Quét CIS
+        run: |
+          prowler aws \
+            --compliance "${COMPLIANCE}" \
+            --region "${AWS_REGION}" \
+            --output-formats json-ocsf html csv \
+            --output-directory reports \
+            --output-filename prowler \
+            --ignore-exit-code-3 \
+            --no-banner
+
+      # Lưu báo cáo cả khi bước sau lỗi. W10 sẽ chuyển sang bucket S3.
+      - name: Lưu báo cáo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prowler-${{ github.run_number }}
+          path: reports/
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Tóm tắt kết quả
+        run: python .github/scripts/prowler_summary.py reports/prowler.ocsf.json
