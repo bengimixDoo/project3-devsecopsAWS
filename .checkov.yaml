@@ -1,23 +1,19 @@
 # Cấu hình Checkov cho project3 (W8 - shift-left gate).
 #
-# Chỉ thi hành một bộ check được chọn có chủ đích (baseline của project),
-# thay vì toàn bộ ~1000 check mặc định. Lý do: nhiều check mặc định nằm ngoài
-# phạm vi MVP (KMS CMK, VPC flow logs, S3 access logging, cross-region
-# replication...) và sẽ được bổ sung dần ở W13 (hardening).
+# Chạy toàn bộ check Terraform mặc định + check tự viết. Việc chặn hay chỉ cảnh báo
+# do .github/scripts/checkov_gate.py quyết định theo .github/checkov-severity.json:
+# HIGH/CRITICAL chặn build, MEDIUM/LOW chỉ cảnh báo.
 framework:
   - terraform
 
-check:
-  # --- S3 ---
-  - CKV_AWS_19   # Dữ liệu S3 phải được mã hóa at-rest
-  - CKV_AWS_21   # S3 phải bật versioning
-  - CKV2_AWS_6   # S3 phải có Public Access Block
-  - CKV_AWS_53   # Public Access Block: block_public_acls = true
-  - CKV_AWS_54   # Public Access Block: block_public_policy = true
-  - CKV_AWS_55   # Public Access Block: ignore_public_acls = true
-  - CKV_AWS_56   # Public Access Block: restrict_public_buckets = true
-  # --- ECR ---
-  - CKV_AWS_51   # ECR tag phải immutable
-  - CKV_AWS_163  # ECR phải bật scan-on-push
+external-checks-dir:
+  - .github/checkov-policies
+
+# Waiver có kiểm soát: mỗi skip-check PHẢI ghi rõ lý do.
+skip-check:
+  - CKV_AWS_144  # Sao chép S3 khác region: tốn phí, dữ liệu demo không cần DR
+  - CKV_AWS_145  # S3 dùng KMS CMK: tốn phí, SSE-S3 (AES256) đủ cho dữ liệu demo
+  - CKV_AWS_136  # ECR dùng KMS CMK: tốn phí, AES256 đủ cho image demo
+  - CKV2_AWS_62  # Event notification S3: không có luồng xử lý nào cần sự kiện này
 
 compact: true

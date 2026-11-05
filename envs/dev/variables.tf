@@ -29,9 +29,9 @@ variable "create_cspm_readonly_role" {
 }
 
 variable "create_github_oidc" {
-  description = "Tạo GitHub OIDC provider + role Deploy (W7)."
+  description = "Tạo GitHub OIDC provider + role Deploy (W7). Mặc định bật để CI không plan xóa chính role nó đang dùng."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "github_owner" {
@@ -47,7 +47,10 @@ variable "github_repo" {
 }
 
 variable "github_sub_claims" {
-  description = "Ghi đè pattern sub OIDC (StringLike, cho phép '*'). Để trống thì sinh tự động từ owner/repo."
+  description = "Danh sách sub OIDC được assume role Deploy. Khóa theo ID số của owner/repo: chỉ nhánh main (plan, apply) và PR (plan). Không dùng wildcard ở owner/repo."
   type        = list(string)
-  default     = []
+  default = [
+    "repo:bengimixDoo@96771380/project3-devsecopsAWS@1428064514:ref:refs/heads/main",
+    "repo:bengimixDoo@96771380/project3-devsecopsAWS@1428064514:pull_request",
+  ]
 }
