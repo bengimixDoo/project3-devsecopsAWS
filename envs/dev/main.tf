@@ -11,8 +11,7 @@ module "network" {
 module "s3" {
   source = "../../modules/s3"
 
-  project_name                = var.project_name
-  enable_insecure_demo_bucket = var.enable_insecure_demo_bucket
+  project_name = var.project_name
 }
 
 module "iam" {

@@ -22,12 +22,6 @@ variable "vpc_cidr" {
   default     = "10.20.0.0/16"
 }
 
-variable "enable_insecure_demo_bucket" {
-  description = "Bật bucket S3 cố ý chưa an toàn để demo gate Checkov/Prowler (W8). Mặc định tắt."
-  type        = bool
-  default     = false
-}
-
 variable "create_cspm_readonly_role" {
   description = "Tạo IAM Role read-only cho Prowler (CSPM)."
   type        = bool

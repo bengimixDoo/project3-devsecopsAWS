@@ -1,12 +1,23 @@
-# Cấu hình Checkov — dùng từ W8.
-# Gate: chặn build khi có finding HIGH/CRITICAL (cấu hình trong workflow).
-# Mỗi skip-check PHẢI có lý do ghi rõ (waiver có kiểm soát).
-
-# Ví dụ waiver (bỏ comment khi cần, LUÔN kèm lý do):
-# skip-check:
-#   - CKV_AWS_18   # lý do: bucket log truy cập chính nó, chấp nhận rủi ro cho demo
-
+# Cấu hình Checkov cho project3 (W8 - shift-left gate).
+#
+# Chỉ thi hành một bộ check được chọn có chủ đích (baseline của project),
+# thay vì toàn bộ ~1000 check mặc định. Lý do: nhiều check mặc định nằm ngoài
+# phạm vi MVP (KMS CMK, VPC flow logs, S3 access logging, cross-region
+# replication...) và sẽ được bổ sung dần ở W13 (hardening).
 framework:
   - terraform
+
+check:
+  # --- S3 ---
+  - CKV_AWS_19   # Dữ liệu S3 phải được mã hóa at-rest
+  - CKV_AWS_21   # S3 phải bật versioning
+  - CKV2_AWS_6   # S3 phải có Public Access Block
+  - CKV_AWS_53   # Public Access Block: block_public_acls = true
+  - CKV_AWS_54   # Public Access Block: block_public_policy = true
+  - CKV_AWS_55   # Public Access Block: ignore_public_acls = true
+  - CKV_AWS_56   # Public Access Block: restrict_public_buckets = true
+  # --- ECR ---
+  - CKV_AWS_51   # ECR tag phải immutable
+  - CKV_AWS_163  # ECR phải bật scan-on-push
 
 compact: true

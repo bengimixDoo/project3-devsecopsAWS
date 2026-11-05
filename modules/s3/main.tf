@@ -42,16 +42,6 @@ resource "aws_s3_bucket_public_access_block" "app" {
   restrict_public_buckets = true
 }
 
-# ---------- Bucket cố ý chưa an toàn (chỉ bật khi cần demo) ----------
-# CẢNH BÁO: tài nguyên này cố tình vi phạm CIS để Checkov/Prowler bắt lỗi.
-# Không mã hóa, không chặn public, không versioning -> dùng để trình diễn gate ở W8.
-resource "aws_s3_bucket" "insecure_demo" {
-  count         = var.enable_insecure_demo_bucket ? 1 : 0
-  bucket        = "${var.project_name}-insecure-demo-${local.account_id}"
-  force_destroy = true
-
-  tags = {
-    Name = "${var.project_name}-insecure-demo"
-    Tier = "insecure-demo"
-  }
-}
+# Bucket "chưa an toàn" để demo gate KHÔNG nằm ở đây: Checkov quét mọi khối
+# resource kể cả khi count = 0, nên nó được thêm qua nhánh demo w8-demo-insecure
+# (file insecure_demo.tf) -> Checkov đỏ -> chặn merge. Xem docs/plan-w8.md.
