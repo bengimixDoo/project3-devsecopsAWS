@@ -20,6 +20,32 @@ data "aws_iam_policy_document" "cspm_assume" {
       identifiers = local.cspm_trusted
     }
   }
+
+  # W9: cho workflow Prowler assume qua OIDC, không dùng access key tĩnh.
+  dynamic "statement" {
+    for_each = local.oidc_enabled && length(var.cspm_sub_claims) > 0 ? [1] : []
+    content {
+      effect  = "Allow"
+      actions = ["sts:AssumeRoleWithWebIdentity"]
+
+      principals {
+        type        = "Federated"
+        identifiers = [aws_iam_openid_connect_provider.github[0].arn]
+      }
+
+      condition {
+        test     = "StringEquals"
+        variable = "token.actions.githubusercontent.com:aud"
+        values   = ["sts.amazonaws.com"]
+      }
+
+      condition {
+        test     = "StringEquals"
+        variable = "token.actions.githubusercontent.com:sub"
+        values   = var.cspm_sub_claims
+      }
+    }
+  }
 }
 
 resource "aws_iam_role" "cspm_readonly" {

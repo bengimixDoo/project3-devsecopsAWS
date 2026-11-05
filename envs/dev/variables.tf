@@ -54,3 +54,11 @@ variable "github_sub_claims" {
     "repo:bengimixDoo@96771380/project3-devsecopsAWS@1428064514:pull_request",
   ]
 }
+
+variable "cspm_sub_claims" {
+  description = "Danh sách sub OIDC được assume role CSPM read-only. Chỉ nhánh main: code của PR không được dùng quyền đọc toàn account."
+  type        = list(string)
+  default = [
+    "repo:bengimixDoo@96771380/project3-devsecopsAWS@1428064514:ref:refs/heads/main",
+  ]
+}
