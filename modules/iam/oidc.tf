@@ -4,13 +4,13 @@
 
 locals {
   oidc_enabled = var.create_github_oidc && var.github_owner != "" && var.github_repo != ""
-  # Điều kiện sub: nếu truyền github_sub_claims thì dùng trực tiếp (pattern StringLike,
-  # cho phép wildcard); nếu không thì sinh từ owner/repo + allowed_refs.
+  # Điều kiện sub: nếu truyền github_sub_claims thì dùng trực tiếp (so bằng StringLike);
+  # nếu không thì sinh từ owner/repo + allowed_refs.
   #
   # LƯU Ý (xác định bằng CloudTrail): một số repo GitHub gửi sub có nhúng ID số, vd
   #   repo:bengimixDoo@96771380/project3-devsecopsAWS@1428064514:ref:refs/heads/main
-  # Khi đó phải truyền github_sub_claims với wildcard quanh @<id>, vd:
-  #   ["repo:bengimixDoo*/project3-devsecopsAWS*:*"]
+  # Khi đó phải truyền github_sub_claims với đúng ID số. KHÔNG dùng wildcard ở owner/repo:
+  # "bengimixDoo*" khớp cả account khác có cùng tiền tố tên.
   oidc_subs = length(var.github_sub_claims) > 0 ? var.github_sub_claims : [for r in var.github_allowed_refs : "repo:${var.github_owner}/${var.github_repo}:${r}"]
 }
 
