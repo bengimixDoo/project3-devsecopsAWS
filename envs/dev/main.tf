@@ -20,6 +20,8 @@ module "iam" {
   project_name              = var.project_name
   create_cspm_readonly_role = var.create_cspm_readonly_role
   cspm_sub_claims           = var.cspm_sub_claims
+  cspm_reports_write        = true
+  reports_bucket_arn        = module.s3.reports_bucket_arn
 
   create_github_oidc = var.create_github_oidc
   github_owner       = var.github_owner

@@ -2,7 +2,9 @@
 # - Chạy theo lịch, bấm thủ công, hoặc được ci-terraform.yml gọi sau mỗi lần apply.
 # - Chỉ đọc: dùng role cspm-readonly qua OIDC, tách khỏi role Deploy. Trust chỉ cho nhánh main.
 # - Finding KHÔNG làm job đỏ: lỗi cấu hình là kết quả để báo cáo, không phải lỗi pipeline.
-#   Job chỉ đỏ khi quét hỏng hoặc không ra kết quả. Cảnh báo là việc của W11.
+#   Job chỉ đỏ khi quét hỏng hoặc không ra kết quả.
+# - W10: gộp với kết quả Checkov mới nhất, lưu lên bucket reports theo tool/ngày/commit.
+# - W11: báo Slack khi có lỗi CRITICAL/HIGH MỚI so với lần trước, hoặc khi workflow lỗi.
 
 name: cspm-prowler
 
@@ -20,6 +22,8 @@ jobs:
   prowler:
     name: prowler (CIS)
     runs-on: ubuntu-latest
+    # Hai lần quét chồng nhau sẽ ghi đè latest/summary.json của nhau.
+    concurrency: cspm-prowler
     env:
       PROWLER_VERSION: "5.47.0"
       COMPLIANCE: cis_7.0_aws
@@ -51,7 +55,41 @@ jobs:
             --ignore-exit-code-3 \
             --no-banner
 
-      # Lưu báo cáo cả khi bước sau lỗi. W10 sẽ chuyển sang bucket S3.
+      - name: Tóm tắt kết quả
+        run: python .github/scripts/prowler_summary.py reports/prowler.ocsf.json
+
+      - name: Xác định bucket báo cáo
+        run: |
+          account=$(aws sts get-caller-identity --query Account --output text)
+          echo "REPORTS_BUCKET=project3-reports-${account}" >> "$GITHUB_ENV"
+          echo "REPORT_PREFIX=prowler/$(date -u +%F)/${GITHUB_SHA::7}-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
+
+      # Chưa có thì là lần đầu: summary.json được đánh dấu là mốc, không cảnh báo.
+      - name: Lấy kết quả lần trước và Checkov mới nhất
+        run: |
+          aws s3 cp "s3://${REPORTS_BUCKET}/latest/summary.json" previous.json || echo "Chưa có summary lần trước"
+          aws s3 cp "s3://${REPORTS_BUCKET}/checkov/latest/results_json.json" checkov.json || echo "Chưa có kết quả Checkov"
+
+      - name: Gộp kết quả
+        run: |
+          args=(--prowler reports/prowler.ocsf.json --output reports/summary.json)
+          [ -f previous.json ] && args+=(--previous previous.json)
+          [ -f checkov.json ] && args+=(--checkov checkov.json)
+          python scripts/aggregate_findings.py "${args[@]}"
+
+      # latest/summary.json chỉ được thay sau khi lưu đủ bản lịch sử.
+      - name: Lưu lên S3
+        run: |
+          aws s3 cp reports/ "s3://${REPORTS_BUCKET}/${REPORT_PREFIX}/" --recursive --only-show-errors
+          aws s3 cp reports/summary.json "s3://${REPORTS_BUCKET}/latest/summary.json" --only-show-errors
+          echo "Báo cáo: s3://${REPORTS_BUCKET}/${REPORT_PREFIX}/" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Cảnh báo lỗi mới
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: python scripts/notify.py findings reports/summary.json
+
+      # Giữ thêm artifact để xem nhanh trên GitHub, kể cả khi bước trước lỗi.
       - name: Lưu báo cáo
         if: always()
         uses: actions/upload-artifact@v4
@@ -59,7 +97,10 @@ jobs:
           name: prowler-${{ github.run_number }}
           path: reports/
           retention-days: 30
-          if-no-files-found: error
+          if-no-files-found: warn
 
-      - name: Tóm tắt kết quả
-        run: python .github/scripts/prowler_summary.py reports/prowler.ocsf.json
+      - name: Báo pipeline lỗi
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: python scripts/notify.py pipeline-failed --workflow cspm-prowler
