@@ -28,9 +28,3 @@ module "iam" {
   github_repo        = var.github_repo
   github_sub_claims  = var.github_sub_claims
 }
-
-module "ecr" {
-  source = "../../modules/ecr"
-
-  project_name = var.project_name
-}

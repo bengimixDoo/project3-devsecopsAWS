@@ -13,7 +13,6 @@ external-checks-dir:
 skip-check:
   - CKV_AWS_144  # Sao chép S3 khác region: tốn phí, dữ liệu demo không cần DR
   - CKV_AWS_145  # S3 dùng KMS CMK: tốn phí, SSE-S3 (AES256) đủ cho dữ liệu demo
-  - CKV_AWS_136  # ECR dùng KMS CMK: tốn phí, AES256 đủ cho image demo
   - CKV2_AWS_62  # Event notification S3: không có luồng xử lý nào cần sự kiện này
 
 compact: true

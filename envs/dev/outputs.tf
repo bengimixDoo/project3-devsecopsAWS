@@ -18,11 +18,6 @@ output "reports_bucket_name" {
   value       = module.s3.reports_bucket_name
 }
 
-output "ecr_repository_url" {
-  description = "URL ECR repository"
-  value       = module.ecr.repository_url
-}
-
 output "cspm_readonly_role_arn" {
   description = "ARN role read-only cho Prowler"
   value       = module.iam.cspm_readonly_role_arn
