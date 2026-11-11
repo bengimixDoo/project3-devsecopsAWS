@@ -21,6 +21,18 @@ variable "cspm_sub_claims" {
   default     = []
 }
 
+variable "cspm_reports_write" {
+  description = "Cho role CSPM ghi vào bucket báo cáo (W10). Dùng biến bool riêng vì ARN bucket chưa biết lúc plan."
+  type        = bool
+  default     = false
+}
+
+variable "reports_bucket_arn" {
+  description = "ARN bucket báo cáo mà role CSPM được ghi vào (khi cspm_reports_write = true)."
+  type        = string
+  default     = ""
+}
+
 # ---------- OIDC + role Deploy cho GitHub Actions (W7) ----------
 variable "create_github_oidc" {
   description = "Tạo GitHub OIDC provider + IAM Role Deploy để GitHub Actions assume (không dùng access key tĩnh)."

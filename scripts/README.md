@@ -1,6 +1,6 @@
 # scripts/
 
-Placeholder — hiện thực ở **W10–W11**.
+- `aggregate_findings.py` (W10) — gộp kết quả Checkov + Prowler về một `summary.json`: số lỗi theo severity, % control CIS đạt, finding mới/đã sửa so với lần trước. Xem `docs/plan-w10.md`.
+- `notify.py` (W11) — gửi Slack khi Prowler có lỗi CRITICAL/HIGH mới hoặc pipeline trên `main` lỗi. Xem `docs/plan-w11.md`.
 
-- `aggregate_findings.py` — gộp kết quả Checkov + Prowler về một JSON chung (số lỗi theo severity, theo control CIS).
-- `notify.py` — gửi webhook Slack/Teams khi pipeline fail hoặc có rủi ro High/Critical mới.
+Chỉ dùng thư viện chuẩn của Python, chạy được ngay trên runner GitHub.

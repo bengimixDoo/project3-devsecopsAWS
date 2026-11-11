@@ -5,7 +5,7 @@ Workflow: Terraform → GitHub Actions (CI) → Checkov (quét IaC) → terrafor
 ## Cấu trúc thư mục (dự kiến)
 
 ```
-modules/             # Terraform modules: network, s3, iam, ecr
+modules/             # Terraform modules: network, s3, iam
 envs/dev/            # Cấu hình môi trường dev + backend S3
 .github/workflows/   # Pipeline CI/CD (plan, checkov, apply, prowler)
 scripts/             # Script tổng hợp báo cáo, cảnh báo

@@ -71,3 +71,29 @@ resource "aws_iam_role_policy_attachment" "cspm_view_only" {
   role       = aws_iam_role.cspm_readonly[0].name
   policy_arn = "arn:aws:iam::aws:policy/job-function/ViewOnlyAccess"
 }
+
+# W10: quyền ghi DUY NHẤT của role CSPM, giới hạn trong bucket báo cáo.
+data "aws_iam_policy_document" "cspm_reports_write" {
+  count = var.create_cspm_readonly_role && var.cspm_reports_write ? 1 : 0
+
+  statement {
+    sid       = "ListReports"
+    effect    = "Allow"
+    actions   = ["s3:ListBucket"]
+    resources = [var.reports_bucket_arn]
+  }
+
+  statement {
+    sid       = "ReadWriteReports"
+    effect    = "Allow"
+    actions   = ["s3:GetObject", "s3:PutObject"]
+    resources = ["${var.reports_bucket_arn}/*"]
+  }
+}
+
+resource "aws_iam_role_policy" "cspm_reports_write" {
+  count  = var.create_cspm_readonly_role && var.cspm_reports_write ? 1 : 0
+  name   = "${var.project_name}-reports-write"
+  role   = aws_iam_role.cspm_readonly[0].id
+  policy = data.aws_iam_policy_document.cspm_reports_write[0].json
+}

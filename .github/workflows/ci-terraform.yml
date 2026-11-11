@@ -3,6 +3,8 @@
 # - plan: chỉ chạy trên PR / push main, và CHỈ khi checkov xanh.
 # - apply: CHỈ chạy khi bấm thủ công (Actions -> Run workflow), gõ "apply", và checkov xanh.
 # - prowler: quét CSPM sau khi apply xong (W9, xem cspm-prowler.yml).
+# - checkov-report: lưu kết quả Checkov của main lên bucket reports (W10).
+# - notify-failure: báo Slack khi pipeline trên main lỗi (W11).
 # Xác thực AWS qua GitHub OIDC (KHÔNG dùng access key tĩnh).
 
 name: ci-terraform
@@ -69,8 +71,42 @@ jobs:
         with:
           python-version: "3.12"
 
+      # W10: job checkov-report đưa file này lên bucket reports.
+      - name: Lưu kết quả Checkov
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkov-results
+          path: results_json.json
+          retention-days: 7
+          if-no-files-found: warn
+
       - name: Checkov gate
         run: python .github/scripts/checkov_gate.py results_json.json
+
+  # W10: lưu kết quả Checkov của main lên bucket reports, để Prowler gộp vào báo cáo chung.
+  # Dùng role CSPM (chỉ ghi được bucket reports), không dùng role Deploy.
+  checkov-report:
+    name: lưu kết quả checkov
+    needs: checkov
+    if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: checkov-results
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_CSPM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Lưu lên S3
+        run: |
+          bucket="project3-reports-$(aws sts get-caller-identity --query Account --output text)"
+          aws s3 cp results_json.json "s3://${bucket}/checkov/$(date -u +%F)/${GITHUB_SHA::7}-${GITHUB_RUN_ID}/results_json.json" --only-show-errors
+          aws s3 cp results_json.json "s3://${bucket}/checkov/latest/results_json.json" --only-show-errors
 
   # Chạy trên PR và push main — chỉ xem trước, an toàn. Chờ checkov xanh.
   plan:
@@ -140,6 +176,23 @@ jobs:
     name: prowler sau apply
     needs: apply
     uses: ./.github/workflows/cspm-prowler.yml
+    # Cần SLACK_WEBHOOK_URL cho cảnh báo (W11).
+    secrets: inherit
     permissions:
       contents: read
       id-token: write
+
+  # W11: báo Slack khi pipeline trên main lỗi. PR đỏ là chuyện bình thường nên không báo.
+  # Không gồm job prowler: cspm-prowler.yml tự báo lỗi của nó.
+  notify-failure:
+    name: báo pipeline lỗi
+    needs: [checkov, checkov-report, plan, apply]
+    if: ${{ failure() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gửi Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: python3 scripts/notify.py pipeline-failed --workflow ci-terraform

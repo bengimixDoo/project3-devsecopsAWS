@@ -13,9 +13,9 @@ output "app_bucket_name" {
   value       = module.s3.app_bucket_name
 }
 
-output "ecr_repository_url" {
-  description = "URL ECR repository"
-  value       = module.ecr.repository_url
+output "reports_bucket_name" {
+  description = "Bucket lưu báo cáo Checkov + Prowler (W10)"
+  value       = module.s3.reports_bucket_name
 }
 
 output "cspm_readonly_role_arn" {
